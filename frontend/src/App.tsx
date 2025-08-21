@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logo from './logo.svg';
 import './App.css';
+
 
 
 
@@ -9,6 +10,11 @@ function App() {
     const [projectType, setProjectType] = useState('microservice');
     const [goVersion, setGoVersion] = useState('1.22.0');
     const [framework, setFramework] = useState('');
+    const [moduleName, setModuleName] = useState('');
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [touched, setTouched] = useState<{moduleName: boolean; name: boolean; description: boolean}>({moduleName: false, name: false, description: false});
+    const [errors, setErrors] = useState<{moduleName?: string; name?: string; description?: string}>({});
 
 
     // Framework options based on project type
@@ -23,8 +29,10 @@ function App() {
     }, [projectType]);
 
     useEffect(() => {
-        // Reset framework if project type or options change
-        setFramework(currentFrameworkOptions[0]);
+        // Reset framework if project type or options change, only if not already set or not in options
+        setFramework(prev =>
+            currentFrameworkOptions.includes(prev) ? prev : currentFrameworkOptions[0]
+        );
     }, [projectType, currentFrameworkOptions]);
 
     useEffect(() => {
@@ -42,6 +50,72 @@ function App() {
     const handleGoVersionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setGoVersion(e.target.value);
     };
+
+    // Handler for Generate action
+    const handleGenerate = () => {
+        const newErrors: {moduleName?: string; name?: string; description?: string} = {};
+        if (!moduleName.trim()) newErrors.moduleName = 'Module Name is required.';
+        if (!name.trim()) newErrors.name = 'Name is required.';
+        if (!description.trim()) newErrors.description = 'Description is required.';
+        setErrors(newErrors);
+        setTouched({moduleName: true, name: true, description: true});
+        if (Object.keys(newErrors).length > 0) return;
+        const requestBody = {
+            projectType,
+            goVersion,
+            framework,
+            moduleName,
+            name,
+            description,
+        };
+        // For now, just show the request body
+        alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
+        // TODO: Send requestBody to backend
+    };
+
+    // Keep framework and other state always up to date for hotkey
+    const frameworkRef = useRef(framework);
+    const moduleNameRef = useRef(moduleName);
+    const nameRef = useRef(name);
+    const descriptionRef = useRef(description);
+    useEffect(() => { frameworkRef.current = framework; }, [framework]);
+    useEffect(() => { moduleNameRef.current = moduleName; }, [moduleName]);
+    useEffect(() => { nameRef.current = name; }, [name]);
+    useEffect(() => { descriptionRef.current = description; }, [description]);
+
+    // Platform detection for hotkey icon
+    const isMac = typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
+
+    // Hotkey: Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux)
+    useEffect(() => {
+        const listener = (e: KeyboardEvent) => {
+            if (
+                (isMac && e.metaKey && e.key === 'Enter') ||
+                (!isMac && e.ctrlKey && e.key === 'Enter')
+            ) {
+                e.preventDefault();
+                // Validation logic for hotkey
+                const newErrors: {moduleName?: string; name?: string; description?: string} = {};
+                if (!moduleNameRef.current.trim()) newErrors.moduleName = 'Module Name is required.';
+                if (!nameRef.current.trim()) newErrors.name = 'Name is required.';
+                if (!descriptionRef.current.trim()) newErrors.description = 'Description is required.';
+                setErrors(newErrors);
+                setTouched({moduleName: true, name: true, description: true});
+                if (Object.keys(newErrors).length > 0) return;
+                const requestBody = {
+                    projectType,
+                    goVersion,
+                    framework: frameworkRef.current,
+                    moduleName: moduleNameRef.current,
+                    name: nameRef.current,
+                    description: descriptionRef.current,
+                };
+                alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
+            }
+        };
+        window.addEventListener('keydown', listener);
+        return () => window.removeEventListener('keydown', listener);
+    }, [isMac, projectType, goVersion]);
 
     return (
         <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--background)', color: 'var(--text)', transition: 'background 0.3s, color 0.3s' }}>
@@ -184,21 +258,121 @@ function App() {
                         <form style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                             <div style={{ gridColumn: 'span 2' }}>
                                 <label style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 4, display: 'block' }}>Module Name</label>
-                                <input type="text" placeholder="github.com/your/module" style={{ width: '100%', padding: '0.7rem', fontSize: 16, borderRadius: 8, border: '1.5px solid #e3e8f0', background: 'var(--card-bg)', color: 'var(--text)', fontWeight: 500, outline: 'none', marginTop: 4 }} />
+                                <input
+                                    type="text"
+                                    placeholder="github.com/your/module"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.7rem',
+                                        fontSize: 16,
+                                        borderRadius: 8,
+                                        border: errors.moduleName && touched.moduleName ? '2px solid #ff4d4f' : '1.5px solid #e3e8f0',
+                                        background: 'var(--card-bg)',
+                                        color: 'var(--text)',
+                                        fontWeight: 500,
+                                        outline: errors.moduleName && touched.moduleName ? '2px solid #ff4d4f' : 'none',
+                                        marginTop: 4,
+                                    }}
+                                    value={moduleName}
+                                    onChange={e => {
+                                        setModuleName(e.target.value);
+                                        setTouched(t => ({...t, moduleName: true}));
+                                        setErrors(errs => ({...errs, moduleName: e.target.value.trim() ? undefined : 'Module Name is required.'}));
+                                    }}
+                                    required
+                                    onBlur={() => setTouched(t => ({...t, moduleName: true}))}
+                                />
+                                {errors.moduleName && touched.moduleName && (
+                                    <span style={{ color: '#ff4d4f', fontSize: 13, marginTop: 2, display: 'block' }}>{errors.moduleName}</span>
+                                )}
                             </div>
                             <div>
                                 <label style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 4, display: 'block' }}>Name</label>
-                                <input type="text" placeholder="my-app" style={{ width: '100%', padding: '0.7rem', fontSize: 16, borderRadius: 8, border: '1.5px solid #e3e8f0', background: 'var(--card-bg)', color: 'var(--text)', fontWeight: 500, outline: 'none', marginTop: 4 }} />
+                                <input
+                                    type="text"
+                                    placeholder="my-app"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.7rem',
+                                        fontSize: 16,
+                                        borderRadius: 8,
+                                        border: errors.name && touched.name ? '2px solid #ff4d4f' : '1.5px solid #e3e8f0',
+                                        background: 'var(--card-bg)',
+                                        color: 'var(--text)',
+                                        fontWeight: 500,
+                                        outline: errors.name && touched.name ? '2px solid #ff4d4f' : 'none',
+                                        marginTop: 4,
+                                    }}
+                                    value={name}
+                                    onChange={e => {
+                                        setName(e.target.value);
+                                        setTouched(t => ({...t, name: true}));
+                                        setErrors(errs => ({...errs, name: e.target.value.trim() ? undefined : 'Name is required.'}));
+                                    }}
+                                    required
+                                    onBlur={() => setTouched(t => ({...t, name: true}))}
+                                />
+                                {errors.name && touched.name && (
+                                    <span style={{ color: '#ff4d4f', fontSize: 13, marginTop: 2, display: 'block' }}>{errors.name}</span>
+                                )}
                             </div>
                             <div>
                                 <label style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 4, display: 'block' }}>Description</label>
-                                <input type="text" placeholder="Short project description" style={{ width: '100%', padding: '0.7rem', fontSize: 16, borderRadius: 8, border: '1.5px solid #e3e8f0', background: 'var(--card-bg)', color: 'var(--text)', fontWeight: 500, outline: 'none', marginTop: 4 }} />
+                                <input
+                                    type="text"
+                                    placeholder="Short project description"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.7rem',
+                                        fontSize: 16,
+                                        borderRadius: 8,
+                                        border: errors.description && touched.description ? '2px solid #ff4d4f' : '1.5px solid #e3e8f0',
+                                        background: 'var(--card-bg)',
+                                        color: 'var(--text)',
+                                        fontWeight: 500,
+                                        outline: errors.description && touched.description ? '2px solid #ff4d4f' : 'none',
+                                        marginTop: 4,
+                                    }}
+                                    value={description}
+                                    onChange={e => {
+                                        setDescription(e.target.value);
+                                        setTouched(t => ({...t, description: true}));
+                                        setErrors(errs => ({...errs, description: e.target.value.trim() ? undefined : 'Description is required.'}));
+                                    }}
+                                    required
+                                    onBlur={() => setTouched(t => ({...t, description: true}))}
+                                />
+                                {errors.description && touched.description && (
+                                    <span style={{ color: '#ff4d4f', fontSize: 13, marginTop: 2, display: 'block' }}>{errors.description}</span>
+                                )}
                             </div>
                         </form>
                     </section>
                     {/* Generate Button */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
-                        <button style={{ background: '#ffd700', color: theme === 'dark' ? '#23272f' : '#222', fontWeight: 700, fontSize: 18, padding: '0.9rem 2.5rem', borderRadius: 10, border: 'none', boxShadow: '0 2px 8px 0 rgba(34,34,34,0.10)', letterSpacing: 0.5, cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}>
+                        <button
+                            style={{ background: '#ffd700', color: theme === 'dark' ? '#23272f' : '#222', fontWeight: 700, fontSize: 18, padding: '0.9rem 2.5rem', borderRadius: 10, border: 'none', boxShadow: '0 2px 8px 0 rgba(34,34,34,0.10)', letterSpacing: 0.5, cursor: 'pointer', transition: 'background 0.2s, color 0.2s', display: 'flex', alignItems: 'center', gap: 10 }}
+                            onClick={handleGenerate}
+                            title={isMac ? 'Cmd+Enter (macOS)' : 'Ctrl+Enter (Windows/Linux)'}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginRight: 10, fontSize: 15 }}>
+                                {isMac ? (
+                                    <>
+                                        {/* macOS icon */}
+                                        <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 22 }}>⌘</span>
+                                        <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 22 }}>↵</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Windows/Linux icon */}
+                                        <svg style={{ height: 24, width: 24 }} viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="2" y="4" width="16" height="12" rx="2" />
+                                        </svg>
+                                        <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 20 }}>Ctrl</span>
+                                        <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 22 }}>↵</span>
+                                    </>
+                                )}
+                            </span>
                             GENERATE
                         </button>
                         <button style={{ background: theme === 'dark' ? '#23272f' : '#f8fafc', color: 'var(--text)', fontWeight: 700, fontSize: 18, padding: '0.9rem 2.5rem', borderRadius: 10, border: '1.5px solid #e3e8f0', boxShadow: '0 2px 8px 0 rgba(34,34,34,0.06)', letterSpacing: 0.5, cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}>
