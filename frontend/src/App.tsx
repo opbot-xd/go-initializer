@@ -2,13 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import logo from './logo.svg';
 import './App.css';
 
-
-
-
 function App() {
     const [theme, setTheme] = useState('dark');
     const [projectType, setProjectType] = useState('microservice');
-    const [goVersion, setGoVersion] = useState('1.22.0');
+    const [goVersion, setGoVersion] = useState('1.25.0');
     const [framework, setFramework] = useState('');
     const [moduleName, setModuleName] = useState('');
     const [name, setName] = useState('');
@@ -139,7 +136,7 @@ function App() {
                     <section style={{ background: 'var(--card-bg)', borderRadius: 16, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: '2rem', marginBottom: 0, color: 'var(--text)' }}>
                         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 18, color: 'var(--text)' }}>Go Version</h2>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                            {['1.22.0 (latest stable)', '1.21.7', '1.20.14'].map((ver) => {
+                            {['1.25.0 (latest stable)', '1.24.6', '1.23.12'].map((ver) => {
                                 const value = ver.split(' ')[0];
                                 const checked = goVersion === value;
                                 return (
