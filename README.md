@@ -38,10 +38,21 @@ Framework options are context-aware and change based on the selected project typ
 
 | Project Type    | Framework/Dependency Options         |
 |-----------------|--------------------------------------|
-| Microservice    | Gin, Echo, Fiber, Go kit             |
-| CLI App         | Cobra, urfave/cli, Kingpin           |
-| API Server      | Gin, Echo, Fiber, Chi                |
-| Simple Project  | None                                 |
+| Microservice    | Golly, Gin, Echo, Fiber, Go kit      |
+| CLI App         | Golly, Cobra, urfave/cli, Kingpin    |
+| API Server      | Golly, Gin, Echo, Fiber, Chi         |
+| Simple Project  | Golly                                |
+
+Support various addons to enhance your project:
+
+| Addon           | Description                          |
+|-----------------|--------------------------------------|
+| Logging         | Zap, Logrus, Zerolog                 |
+| Database        | GORM, SQLX, Ent                      |
+| Cache           | Redis                                |
+| Testing         | Testify, Ginkgo                      |
+| Docker          | Dockerfile, Docker Compose           |
+| CI/CD           | GitHub Actions, GitLab CI            |
 
 ## Contributing
 
