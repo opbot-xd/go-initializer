@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"archive/zip"
@@ -9,15 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-type CreateProjectRequest struct {
-	ProjectType string `json:"projectType"`
-	GoVersion   string `json:"goVersion"`
-	Framework   string `json:"framework"`
-	ModuleName  string `json:"moduleName"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
 
 func GenerateHandler(ctx *gin.Context) {
 	var request CreateProjectRequest
