@@ -1,14 +1,19 @@
 package main
 
 import (
-	"archive/zip"
-	"bytes"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+func MetaHandler(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{
+		"supportedProjectTypes": SupportedProjectTypesLabelsMap,
+		"supportedGoVersions":   SupportedGoVersionsMap,
+		"supportedFrameworks":   SupportedFrameworksMap,
+	})
+}
 
 func GenerateHandler(ctx *gin.Context) {
 	var request CreateProjectRequest
@@ -18,42 +23,40 @@ func GenerateHandler(ctx *gin.Context) {
 		return
 	}
 	log.Printf("[INFO] Received request: %+v", request)
-
-	// generate a zip file in memory
-
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-
-	// Create a folder with the project name and write files inside it
-	folderName := request.Name
-	if folderName == "" {
-		folderName = "project"
-	}
-
-	// Example: add a README.md file inside the folder
-	readmeContent := fmt.Sprintf("# %s\n\n%s", request.Name, request.Description)
-	readmeFile, err := zipWriter.Create(fmt.Sprintf("%s/README.md", folderName))
-	if err != nil {
-		log.Printf("[ERROR] Failed to create file in zip: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create zip file"})
+	switch request.ProjectType {
+	case "microservice":
+		buf, err := GenerateMicroservice(request)
+		if err != nil {
+			log.Printf("[ERROR] Failed to generate project: %v", err)
+			resp := ErrorResponseBody{
+				StatusCode: http.StatusInternalServerError,
+				Message:    "Failed to generate project",
+			}
+			resp.GenerateResponse(ctx)
+			return
+		}
+		resp := SuccessResponseBody{Data: buf.Bytes()}
+		resp.GenerateResponse(ctx)
+	case "simple-project":
+		buf, err := GenerateSimpleProjecet(request)
+		if err != nil {
+			log.Printf("[ERROR] Failed to generate project: %v", err)
+			resp := ErrorResponseBody{
+				StatusCode: http.StatusInternalServerError,
+				Message:    "Failed to generate project",
+			}
+			resp.GenerateResponse(ctx)
+			return
+		}
+		resp := SuccessResponseBody{Data: buf.Bytes()}
+		resp.GenerateResponse(ctx)
+	default:
+		log.Printf("[ERROR] Unsupported project type: %s", request.ProjectType)
+		resp := ErrorResponseBody{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Unsupported project type",
+		}
+		resp.GenerateResponse(ctx)
 		return
 	}
-	_, err = readmeFile.Write([]byte(readmeContent))
-	if err != nil {
-		log.Printf("[ERROR] Failed to write to zip: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write to zip file"})
-		return
-	}
-
-	// Add more files as needed based on request
-	err = zipWriter.Close()
-	if err != nil {
-		log.Printf("[ERROR] Failed to close zip writer: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize zip file"})
-		return
-	}
-
-	ctx.Header("Content-Type", "application/zip")
-	ctx.Header("Content-Disposition", "attachment; filename=project.zip")
-	ctx.Data(http.StatusOK, "application/zip", buf.Bytes())
 }

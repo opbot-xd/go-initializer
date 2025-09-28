@@ -26,7 +26,9 @@ func NewRouter(v *validator.Validate) *gin.Engine {
 		ctx.JSON(http.StatusOK, "server is up and running")
 	})
 
-	service.POST("/api/v1/generate", GenerateHandler)
+	service.GET("/meta", MetaHandler)
+
+	service.POST("/generate", GenerateHandler)
 
 	return service
 }

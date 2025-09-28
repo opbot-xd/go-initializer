@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import logo from './logo.svg';
 import './App.css';
+
+import { generateProject } from './service';
 
 function App() {
     const [theme, setTheme] = useState('dark');
@@ -48,15 +50,19 @@ function App() {
         setGoVersion(e.target.value);
     };
 
-    // Handler for Generate action
-    const handleGenerate = () => {
+    const validateInput = useCallback(() => {
         const newErrors: {moduleName?: string; name?: string; description?: string} = {};
         if (!moduleName.trim()) newErrors.moduleName = 'Module Name is required.';
         if (!name.trim()) newErrors.name = 'Name is required.';
         if (!description.trim()) newErrors.description = 'Description is required.';
         setErrors(newErrors);
         setTouched({moduleName: true, name: true, description: true});
-        if (Object.keys(newErrors).length > 0) return;
+        return Object.keys(newErrors).length === 0;
+    }, [moduleName, name, description]);
+
+    // Handler for Generate action
+    const handleGenerate = useCallback(() => {
+        if (!validateInput()) return;
         const requestBody = {
             projectType,
             goVersion,
@@ -65,10 +71,23 @@ function App() {
             name,
             description,
         };
-        // For now, just show the request body
-        alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
-        // TODO: Send requestBody to backend
-    };
+        generateProject(requestBody)
+            .then(blob => {
+                const filename = 'project.zip';
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Error:\n' + error.message);
+            });
+
+    }, [validateInput, projectType, goVersion, framework, moduleName, name, description]);
 
     // Keep framework and other state always up to date for hotkey
     const frameworkRef = useRef(framework);
@@ -92,27 +111,12 @@ function App() {
             ) {
                 e.preventDefault();
                 // Validation logic for hotkey
-                const newErrors: {moduleName?: string; name?: string; description?: string} = {};
-                if (!moduleNameRef.current.trim()) newErrors.moduleName = 'Module Name is required.';
-                if (!nameRef.current.trim()) newErrors.name = 'Name is required.';
-                if (!descriptionRef.current.trim()) newErrors.description = 'Description is required.';
-                setErrors(newErrors);
-                setTouched({moduleName: true, name: true, description: true});
-                if (Object.keys(newErrors).length > 0) return;
-                const requestBody = {
-                    projectType,
-                    goVersion,
-                    framework: frameworkRef.current,
-                    moduleName: moduleNameRef.current,
-                    name: nameRef.current,
-                    description: descriptionRef.current,
-                };
-                alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
+                handleGenerate();
             }
         };
         window.addEventListener('keydown', listener);
         return () => window.removeEventListener('keydown', listener);
-    }, [isMac, projectType, goVersion]);
+    }, [handleGenerate, isMac]);
 
     return (
         <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--background)', color: 'var(--text)', transition: 'background 0.3s, color 0.3s' }}>
