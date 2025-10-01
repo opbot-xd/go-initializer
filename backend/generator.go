@@ -79,6 +79,7 @@ func GenerateSimpleProjecet(request CreateProjectRequest) (*bytes.Buffer, error)
 
 	// 2. go.mod (minimal content)
 	gomodContent := GenerateGoMod(folderName, request.GoVersion, request.Framework, request.ProjectType)
+	fmt.Println("Generated go.mod content:\n", gomodContent) // Debug log
 	gomodFile, err := zipWriter.Create(fmt.Sprintf("%s/go.mod", folderName))
 	if err != nil {
 		log.Printf("[ERROR] Failed to create go.mod in zip: %v", err)

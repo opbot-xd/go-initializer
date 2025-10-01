@@ -70,3 +70,8 @@ export async function generateProject(data: any): Promise<Blob> {
   // Return the zip file as a Blob
   return await response.blob();
 }
+
+export async function getMetaData(): Promise<any> {
+  const response = await get('/meta');
+  return response;
+}
