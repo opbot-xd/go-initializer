@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import logo from './logo.svg';
 import './App.css';
-
 import { generateProject, getMetaData } from './service';
 import { toGoVersionOptions, toSupportedFrameworkOptionsMap, toSupportedProjectTypes } from './utils';
+import Explore from './components/Explore';
 
 function App() {
     const [theme, setTheme] = useState('dark');
@@ -18,6 +17,7 @@ function App() {
     const [goVersionOptions, setGoVersionOptions] = useState<{ version: string; label: string }[]>([]);
     const [supportedProjectTypes, setSupportedProjectTypes] = useState<{ type: string; label: string }[]>([]);
     const [supportedFrameworkOptions, setSupportedFrameworkOptions] = useState<Record<string, string[]>>({});
+    const [showExplore, setShowExplore] = useState(false);
 
     // Framework options based on project type
     const currentFrameworkOptions = React.useMemo(() => {
@@ -132,12 +132,13 @@ function App() {
             });
     }, []);
 
+    // const navigate = useNavigate();
     return (
         <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--background)', color: 'var(--text)', transition: 'background 0.3s, color 0.3s' }}>
             {/* Header */}
             <header style={{ background: 'var(--navbar-bg)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--navbar-text)' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src={logo} alt="logo" style={{ height: 40, marginRight: 16 }} />
+                    {/* <img src={logo} alt="logo" style={{ height: 40, marginRight: 16 }} /> */}
                     <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--navbar-text)', letterSpacing: 0.5 }}>go <span style={{ color: '#ffd700' }}>initializer</span></h1>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -149,6 +150,9 @@ function App() {
             
             {/* Main Content */}
             <main style={{ flex: 1, padding: '2.5rem 1rem', background: 'var(--content-bg)', color: 'var(--text)', display: 'grid', gridTemplateColumns: '1fr', gap: 32, maxWidth: 1200, width: '100%', margin: '0 auto' }}>
+                {showExplore ? (
+                    <Explore onBack={() => setShowExplore(false)} />
+                ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                     {/* Go Version Card */}
                     <section style={{ background: 'var(--card-bg)', borderRadius: 16, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: '2rem', marginBottom: 0, color: 'var(--text)' }}>
@@ -390,11 +394,15 @@ function App() {
                             </span>
                             GENERATE
                         </button>
-                        <button style={{ background: theme === 'dark' ? '#23272f' : '#f8fafc', color: 'var(--text)', fontWeight: 700, fontSize: 18, padding: '0.9rem 2.5rem', borderRadius: 10, border: '1.5px solid #e3e8f0', boxShadow: '0 2px 8px 0 rgba(34,34,34,0.06)', letterSpacing: 0.5, cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}>
+                        <button
+                            style={{ background: theme === 'dark' ? '#23272f' : '#f8fafc', color: 'var(--text)', fontWeight: 700, fontSize: 18, padding: '0.9rem 2.5rem', borderRadius: 10, border: '1.5px solid #e3e8f0', boxShadow: '0 2px 8px 0 rgba(34,34,34,0.06)', letterSpacing: 0.5, cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}
+                            onClick={() => setShowExplore(true)}
+                        >
                             EXPLORE
                         </button>
                     </div>
                 </div>
+                )}
             </main>
             {/* Footer */}
             <footer style={{ background: 'var(--footer-bg)', color: 'var(--footer-text)', boxShadow: '0 -2px 8px rgba(0,0,0,0.04)', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
