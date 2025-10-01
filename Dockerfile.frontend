@@ -1,6 +1,10 @@
 # Frontend Dockerfile
 FROM node:18-alpine
 
+# Create a non-root user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
 WORKDIR /app
 
 # Copy package files
@@ -12,6 +16,12 @@ COPY frontend/ ./
 
 # Build the application
 RUN npm run build
+
+# Change ownership of the app directory
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 3000
 
