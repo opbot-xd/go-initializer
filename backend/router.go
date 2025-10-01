@@ -1,4 +1,4 @@
-package router
+package main
 
 import (
 	"net/http"
@@ -7,7 +7,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/neo7337/go-initializer/handler"
 )
 
 func NewRouter(v *validator.Validate) *gin.Engine {
@@ -27,7 +26,9 @@ func NewRouter(v *validator.Validate) *gin.Engine {
 		ctx.JSON(http.StatusOK, "server is up and running")
 	})
 
-	service.POST("/api/v1/generate", handler.GenerateHandler)
+	service.GET("/meta", MetaHandler)
+
+	service.POST("/generate", GenerateHandler)
 
 	return service
 }

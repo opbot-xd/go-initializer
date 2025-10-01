@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import logo from './logo.svg';
 import './App.css';
+
+import { generateProject, getMetaData } from './service';
+import { toGoVersionOptions, toSupportedFrameworkOptionsMap, toSupportedProjectTypes } from './utils';
 
 function App() {
     const [theme, setTheme] = useState('dark');
@@ -12,24 +15,18 @@ function App() {
     const [description, setDescription] = useState('');
     const [touched, setTouched] = useState<{moduleName: boolean; name: boolean; description: boolean}>({moduleName: false, name: false, description: false});
     const [errors, setErrors] = useState<{moduleName?: string; name?: string; description?: string}>({});
-
+    const [goVersionOptions, setGoVersionOptions] = useState<{ version: string; label: string }[]>([]);
+    const [supportedProjectTypes, setSupportedProjectTypes] = useState<{ type: string; label: string }[]>([]);
+    const [supportedFrameworkOptions, setSupportedFrameworkOptions] = useState<Record<string, string[]>>({});
 
     // Framework options based on project type
     const currentFrameworkOptions = React.useMemo(() => {
-        const frameworkOptions: Record<string, string[]> = {
-            microservice: ['golly (recommended)', 'Gin', 'Echo', 'Fiber', 'Go kit'],
-            'cli-app': ['golly (recommended)', 'Cobra', 'urfave/cli', 'Kingpin'],
-            'api-server': ['golly (recommended)', 'Gin', 'Echo', 'Fiber', 'Chi'],
-            'simple-project': ['golly (recommended)'],
-        };
-        return frameworkOptions[projectType] || ['None'];
-    }, [projectType]);
+        return supportedFrameworkOptions[projectType] || ['None'];
+    }, [projectType, supportedFrameworkOptions]);
 
     useEffect(() => {
         // Reset framework if project type or options change, only if not already set or not in options
-        setFramework(prev =>
-            currentFrameworkOptions.includes(prev) ? prev : currentFrameworkOptions[0]
-        );
+        setFramework('');
     }, [projectType, currentFrameworkOptions]);
 
     useEffect(() => {
@@ -48,15 +45,19 @@ function App() {
         setGoVersion(e.target.value);
     };
 
-    // Handler for Generate action
-    const handleGenerate = () => {
+    const validateInput = useCallback(() => {
         const newErrors: {moduleName?: string; name?: string; description?: string} = {};
         if (!moduleName.trim()) newErrors.moduleName = 'Module Name is required.';
         if (!name.trim()) newErrors.name = 'Name is required.';
         if (!description.trim()) newErrors.description = 'Description is required.';
         setErrors(newErrors);
         setTouched({moduleName: true, name: true, description: true});
-        if (Object.keys(newErrors).length > 0) return;
+        return Object.keys(newErrors).length === 0;
+    }, [moduleName, name, description]);
+
+    // Handler for Generate action
+    const handleGenerate = useCallback(() => {
+        if (!validateInput()) return;
         const requestBody = {
             projectType,
             goVersion,
@@ -65,10 +66,23 @@ function App() {
             name,
             description,
         };
-        // For now, just show the request body
-        alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
-        // TODO: Send requestBody to backend
-    };
+        generateProject(requestBody)
+            .then(blob => {
+                const filename = 'project.zip';
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Error:\n' + error.message);
+            });
+
+    }, [validateInput, projectType, goVersion, framework, moduleName, name, description]);
 
     // Keep framework and other state always up to date for hotkey
     const frameworkRef = useRef(framework);
@@ -92,27 +106,31 @@ function App() {
             ) {
                 e.preventDefault();
                 // Validation logic for hotkey
-                const newErrors: {moduleName?: string; name?: string; description?: string} = {};
-                if (!moduleNameRef.current.trim()) newErrors.moduleName = 'Module Name is required.';
-                if (!nameRef.current.trim()) newErrors.name = 'Name is required.';
-                if (!descriptionRef.current.trim()) newErrors.description = 'Description is required.';
-                setErrors(newErrors);
-                setTouched({moduleName: true, name: true, description: true});
-                if (Object.keys(newErrors).length > 0) return;
-                const requestBody = {
-                    projectType,
-                    goVersion,
-                    framework: frameworkRef.current,
-                    moduleName: moduleNameRef.current,
-                    name: nameRef.current,
-                    description: descriptionRef.current,
-                };
-                alert('Request body:\n' + JSON.stringify(requestBody, null, 2));
+                handleGenerate();
             }
         };
         window.addEventListener('keydown', listener);
         return () => window.removeEventListener('keydown', listener);
-    }, [isMac, projectType, goVersion]);
+    }, [handleGenerate, isMac]);
+
+    useEffect(() => {
+        getMetaData()
+            .then(data => {
+                // Handle metadata
+                var formattedGoVersions = toGoVersionOptions(data.supportedGoVersions || []);
+                console.log(formattedGoVersions)
+                setGoVersionOptions(formattedGoVersions);
+                var formattedSupportedProjectTypes = toSupportedProjectTypes(data.supportedProjectTypes || []);
+                console.log(formattedSupportedProjectTypes)
+                setSupportedProjectTypes(formattedSupportedProjectTypes);
+                var formattedSupportedFrameworkOptions = toSupportedFrameworkOptionsMap(data.supportedFrameworks || []);
+                console.log(formattedSupportedFrameworkOptions)
+                setSupportedFrameworkOptions(formattedSupportedFrameworkOptions);
+            })
+            .catch(error => {
+                console.error('Error fetching metadata:', error);
+            });
+    }, []);
 
     return (
         <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--background)', color: 'var(--text)', transition: 'background 0.3s, color 0.3s' }}>
@@ -136,12 +154,12 @@ function App() {
                     <section style={{ background: 'var(--card-bg)', borderRadius: 16, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: '2rem', marginBottom: 0, color: 'var(--text)' }}>
                         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 18, color: 'var(--text)' }}>Go Version</h2>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                            {['1.25.0 (latest stable)', '1.24.6', '1.23.12'].map((ver) => {
-                                const value = ver.split(' ')[0];
+                            {goVersionOptions.map((ver) => {
+                                const value = ver.version;
                                 const checked = goVersion === value;
                                 return (
                                     <label
-                                        key={ver}
+                                        key={ver.version}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -166,7 +184,7 @@ function App() {
                                             checked={checked}
                                             onChange={handleGoVersionChange}
                                         />
-                                        {ver}
+                                        {ver.label}
                                     </label>
                                 );
                             })}
@@ -176,12 +194,12 @@ function App() {
                     <section style={{ background: 'var(--card-bg)', borderRadius: 16, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: '2rem', marginBottom: 0, color: 'var(--text)' }}>
                         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 18, color: 'var(--text)' }}>Project Type</h2>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                            {['Microservice', 'CLI App', 'API Server', 'Simple Project'].map((type) => {
-                                const value = type.toLowerCase().replace(/ /g, '-');
+                            {supportedProjectTypes.map((project_type) => {
+                                const value = project_type.type.toLowerCase().replace(/ /g, '-');
                                 const checked = projectType === value;
                                 return (
                                     <label
-                                        key={type}
+                                        key={project_type.type}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -206,7 +224,7 @@ function App() {
                                             checked={checked}
                                             onChange={handleProjectTypeChange}
                                         />
-                                        {type}
+                                        {project_type.label}
                                     </label>
                                 );
                             })}

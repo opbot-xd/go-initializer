@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"net/http"
@@ -7,13 +7,12 @@ import (
 	"log"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/neo7337/go-initializer/router"
 )
 
 func Start() {
 	validate := validator.New()
 
-	routes := router.NewRouter(validate)
+	routes := NewRouter(validate)
 
 	server := &http.Server{
 		Addr:           ":8181",
