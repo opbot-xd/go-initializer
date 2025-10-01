@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import logo from './logo.svg';
 import './App.css';
 
 import { generateProject, getMetaData } from './service';
@@ -137,7 +136,7 @@ function App() {
             {/* Header */}
             <header style={{ background: 'var(--navbar-bg)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--navbar-text)' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src={logo} alt="logo" style={{ height: 40, marginRight: 16 }} />
+                    {/* <img src={logo} alt="logo" style={{ height: 40, marginRight: 16 }} /> */}
                     <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--navbar-text)', letterSpacing: 0.5 }}>go <span style={{ color: '#ffd700' }}>initializer</span></h1>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
