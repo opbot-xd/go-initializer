@@ -26,8 +26,20 @@ func NewRouter(v *validator.Validate) *gin.Engine {
 		ctx.JSON(http.StatusOK, "server is up and running")
 	})
 
-	service.GET("/meta", MetaHandler)
+	// API routes
+	api := service.Group("/api")
+	{
+		api.GET("/meta", MetaHandler)
+		api.POST("/generate", GenerateHandler)
+		
+		// Template management routes
+		api.POST("/preview", PreviewTemplatesHandler)
+		api.GET("/templates", GetAvailableTemplatesHandler)
+		api.GET("/templates/stats", TemplateStatsHandler)
+	}
 
+	// Legacy routes for backward compatibility
+	service.GET("/meta", MetaHandler)
 	service.POST("/generate", GenerateHandler)
 
 	return service
