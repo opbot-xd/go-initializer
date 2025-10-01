@@ -42,5 +42,15 @@ func NewRouter(v *validator.Validate) *gin.Engine {
 	service.GET("/meta", MetaHandler)
 	service.POST("/generate", GenerateHandler)
 
+	// Serve static files from frontend build
+	service.Static("/static", "./frontend/build/static")
+	service.StaticFile("/", "./frontend/build/index.html")
+	service.StaticFile("/favicon.ico", "./frontend/build/favicon.ico")
+	
+	// Catch-all route for React Router (SPA)
+	service.NoRoute(func(c *gin.Context) {
+		c.File("./frontend/build/index.html")
+	})
+
 	return service
 }

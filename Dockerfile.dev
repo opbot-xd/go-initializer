@@ -1,0 +1,45 @@
+# Development Dockerfile with hot reload
+FROM node:18-alpine AS frontend-dev
+
+WORKDIR /app/frontend
+
+# Install nodemon for hot reload
+RUN npm install -g nodemon
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm install
+
+# Copy frontend source
+COPY frontend/ ./
+
+# Expose frontend port
+EXPOSE 3000
+
+# Start frontend in development mode
+CMD ["npm", "start"]
+
+# Backend development stage
+FROM golang:1.24-alpine AS backend-dev
+
+WORKDIR /app/backend
+
+# Install air for hot reload
+RUN go install github.com/air-verse/air@latest
+
+# Copy go mod files
+COPY backend/go.mod backend/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy backend source
+COPY backend/ ./
+
+# Expose backend port
+EXPOSE 8181
+
+# Start backend with hot reload
+CMD ["air", "-c", ".air.toml"]
